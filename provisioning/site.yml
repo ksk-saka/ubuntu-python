@@ -1,0 +1,15 @@
+---
+- hosts: servers
+  remote_user: vagrant
+  become: yes
+  tasks:
+
+    - name: Set timezone
+      copy: content='Asia/Tokyo'
+            dest=/etc/timezone
+      notify: update timezone
+
+  handlers:
+
+    - name: update timezone
+      command: dpkg-reconfigure --frontend noninteractive tzdata
