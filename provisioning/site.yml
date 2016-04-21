@@ -2,12 +2,76 @@
 - hosts: servers
   remote_user: vagrant
   become: yes
+  vars:
+    src_dir: /usr/local/src
+
+    python_ver: 3.5.1
+    python_src: "Python-{{ python_ver }}"
+    python_url: "https://www.python.org/ftp/python/{{ python_ver }}/{{ python_src }}.tgz"
+    python_dir: /usr/local/python3
+
   tasks:
 
-    - name: Set timezone
+    - name: set timezone
       copy: content='Asia/Tokyo'
             dest=/etc/timezone
-      notify: update timezone
+      notify: update timezon
+
+    - name: update apt
+      apt: update_cache=yes
+
+    - name: upgrade apt
+      apt: upgrade=yes
+
+    # Python3 and pip3
+
+    - name: check python3 is installed
+      command: python3 -V | grep 'Python {{ python_ver }}'
+      register: is_installed
+      failed_when: is_installed|failed or is_installed.stdout != 'Python {{ python_ver }}'
+      ignore_errors: True
+
+    - name: install dependent packages
+      apt: name={{ item }} state=present
+      with_items:
+        - libssl-dev
+      when: is_installed|failed
+
+    - name: download python3 and unarchive
+      unarchive: src={{ python_url }} dest={{ src_dir }} copy=no
+      when: is_installed|failed
+
+    - name: install python3 configure
+      command: ./configure --prefix={{ python_dir }} chdir={{ src_dir }}/{{ python_src }}
+      when: is_installed|failed
+
+    - name: install python3 make
+      command: make chdir={{ src_dir }}/{{ python_src }}
+      when: is_installed|failed
+
+    - name: install python3 make install
+      command: make install chdir={{ src_dir }}/{{ python_src }}
+      when: is_installed|failed
+
+    - name: python3 link 1
+      file: src={{ python_dir }}/bin/python3 dest=/usr/local/bin/python3 state=link
+      when: is_installed|failed
+
+    - name: python3 link 2
+      file: src={{ python_dir }}/bin/python3 dest=/usr/local/bin/python{{ python_ver[0:3] }} state=link
+      when: is_installed|failed
+
+    - name: pip3 link 1
+      file: src={{ python_dir }}/bin/pip3 dest=/usr/local/bin/pip3 state=link
+      when: is_installed|failed
+
+    - name: pip3 link 2
+      file: src={{ python_dir }}/bin/pip3 dest=/usr/local/bin/pip{{ python_ver[0:3] }} state=link
+      when: is_installed|failed
+
+    - name: pip3 upgrade
+      command: pip3 install --upgrade pip
+      when: is_installed|failed
 
   handlers:
 
