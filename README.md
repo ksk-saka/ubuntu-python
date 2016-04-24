@@ -19,15 +19,15 @@ Python(Django)の開発環境を構築します。
 
 * Host(Mac)
 
-      $ git clone git@github.com:ksk-saka/ubuntu-python.git
-      $ cd ubuntu-python
-      $ vagrant up
-      $ vagrant ssh
+        $ git clone git@github.com:ksk-saka/ubuntu-python.git
+        $ cd ubuntu-python
+        $ vagrant up
+        $ vagrant ssh
 
 * Client(Ubuntu)
 
-      $ cd mysite
-      $ python3 manage.py runserver 0.0.0.0:8000
+        $ cd mysite
+        $ python3 manage.py runserver 0.0.0.0:8000
 
 ## 確認
 
