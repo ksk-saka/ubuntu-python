@@ -1,0 +1,59 @@
+---
+
+- name: check python3 is installed
+  command: python3 -V | grep 'Python {{ python_ver }}'
+  register: is_installed
+  changed_when: False
+  failed_when: is_installed|failed or is_installed.stdout != 'Python {{ python_ver }}'
+  ignore_errors: True
+
+- name: install dependent packages
+  apt: name={{ item }} state=present
+  with_items:
+    - libbz2-dev
+    - libncurses5-dev
+    - libgdbm-dev
+    - liblzma-dev
+    - libsqlite3-dev
+    - libssl-dev
+    - tcl8.6-dev
+    - tk8.6-dev
+    - libreadline-dev
+    - zlib1g-dev
+  when: is_installed|failed
+
+- name: download python3 and unarchive
+  unarchive: src={{ python_url }} dest=/usr/local/src copy=no
+  when: is_installed|failed
+
+- name: install python3 configure
+  command: ./configure --prefix=/usr/local/python3 chdir=/usr/local/src/{{ python_src }}
+  when: is_installed|failed
+
+- name: install python3 make
+  command: make chdir=/usr/local/src/{{ python_src }}
+  when: is_installed|failed
+
+- name: install python3 make install
+  command: make install chdir=/usr/local/src/{{ python_src }}
+  when: is_installed|failed
+
+- name: create python3 link
+  file: src=/usr/local/python3/bin/python3 dest=/usr/local/bin/python3 state=link
+  when: is_installed|failed
+
+- name: create python3 link
+  file: src=/usr/local/python3/bin/python3 dest=/usr/local/bin/python{{ python_ver[0:3] }} state=link
+  when: is_installed|failed
+
+- name: create pip3 link
+  file: src=/usr/local/python3/bin/pip3 dest=/usr/local/bin/pip3 state=link
+  when: is_installed|failed
+
+- name: create pip3 link
+  file: src=/usr/local/python3/bin/pip3 dest=/usr/local/bin/pip{{ python_ver[0:3] }} state=link
+  when: is_installed|failed
+
+- name: upgrade pip3
+  command: pip3 install --upgrade pip
+  when: is_installed|failed

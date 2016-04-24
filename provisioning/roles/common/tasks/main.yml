@@ -1,0 +1,12 @@
+---
+
+- name: set timezone
+  copy: content='Asia/Tokyo\n'
+        dest=/etc/timezone
+  notify: update timezone
+
+- name: update apt
+  apt: update_cache=yes
+
+- name: upgrade apt
+  apt: upgrade=yes

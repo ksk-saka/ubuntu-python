@@ -1,165 +1,33 @@
 ---
-- hosts: servers
+
+- name: common
+  hosts: servers
   remote_user: vagrant
   become: yes
-  vars:
-    src_dir: /usr/local/src
 
-    python_ver: 3.5.1
-    python_src: "Python-{{ python_ver }}"
-    python_url: "https://www.python.org/ftp/python/{{ python_ver }}/{{ python_src }}.tgz"
-    python_dir: /usr/local/python3
+  roles:
+    - common
 
-    root_password: P@ssw0rd01
+- name: web
+  hosts: servers
+  remote_user: vagrant
+  become: yes
 
-    project_name: mysite
+  roles:
+    - web
 
-  tasks:
+- name: db
+  hosts: servers
+  remote_user: vagrant
+  become: yes
 
-    - name: set timezone
-      copy: content='Asia/Tokyo'
-            dest=/etc/timezone
-      notify: update timezon
+  roles:
+    - db
 
-    - name: update apt
-      apt: update_cache=yes
+- name: app
+  hosts: servers
+  remote_user: vagrant
+  become: yes
 
-    - name: upgrade apt
-      apt: upgrade=yes
-
-    # Python3 and pip3
-
-    - name: check python3 is installed
-      command: python3 -V | grep 'Python {{ python_ver }}'
-      register: is_installed
-      failed_when: is_installed|failed or is_installed.stdout != 'Python {{ python_ver }}'
-      ignore_errors: True
-
-    - name: install dependent packages
-      apt: name={{ item }} state=present
-      with_items:
-        - libssl-dev
-      when: is_installed|failed
-
-    - name: download python3 and unarchive
-      unarchive: src={{ python_url }} dest={{ src_dir }} copy=no
-      when: is_installed|failed
-
-    - name: install python3 configure
-      command: ./configure --prefix={{ python_dir }} chdir={{ src_dir }}/{{ python_src }}
-      when: is_installed|failed
-
-    - name: install python3 make
-      command: make chdir={{ src_dir }}/{{ python_src }}
-      when: is_installed|failed
-
-    - name: install python3 make install
-      command: make install chdir={{ src_dir }}/{{ python_src }}
-      when: is_installed|failed
-
-    - name: python3 link 1
-      file: src={{ python_dir }}/bin/python3 dest=/usr/local/bin/python3 state=link
-      when: is_installed|failed
-
-    - name: python3 link 2
-      file: src={{ python_dir }}/bin/python3 dest=/usr/local/bin/python{{ python_ver[0:3] }} state=link
-      when: is_installed|failed
-
-    - name: pip3 link 1
-      file: src={{ python_dir }}/bin/pip3 dest=/usr/local/bin/pip3 state=link
-      when: is_installed|failed
-
-    - name: pip3 link 2
-      file: src={{ python_dir }}/bin/pip3 dest=/usr/local/bin/pip{{ python_ver[0:3] }} state=link
-      when: is_installed|failed
-
-    - name: pip3 upgrade
-      command: pip3 install --upgrade pip
-      when: is_installed|failed
-
-    # MySQL
-
-    - name: check mysql is installed
-      command: mysqld -V
-      register: is_installed
-      ignore_errors: True
-      changed_when: False
-
-    - name: install mysql
-      apt: name={{ item }} state=present
-      with_items:
-        - mysql-server
-        - libmysqlclient-dev
-      when: is_installed|failed
-
-    - name: create mysqld.cnf
-      template: src=mysqld.cnf.j2 dest=/etc/mysql/mysql.conf.d/mysqld.cnf
-      notify: restart mysql
-      when: is_installed|failed
-
-    - name: remove anonymous users
-      command: mysql -u root -e "DELETE FROM mysql.user WHERE User=''"
-      when: is_installed|failed
-
-    - name: disallow root login remotely
-      command: mysql -u root -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1')"
-      when: is_installed|failed
-
-    - name: remove test database and access to it
-      command: mysql -u root -e "{{ item }}"
-      with_items:
-        - DROP DATABASE test
-        - DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%'
-      ignore_errors: True
-      when: is_installed|failed
-
-    - name: change the root password
-      command: mysql -u root -e "UPDATE mysql.user SET Password=PASSWORD('{{ root_password }}') WHERE User='root'"
-      when: is_installed|failed
-
-    - name: reload privilege tables now
-      command: mysql -u root -e "FLUSH PRIVILEGES"
-      when: is_installed|failed
-
-    # Application
-
-    - name: copy requirements.txt
-      copy: src=requirements.txt dest=/tmp/requirements.txt
-
-    - name: install applications
-      pip: requirements=/tmp/requirements.txt executable=pip3
-
-    - name: remove requirements.txt
-      file: path=/tmp/requirements.txt state=absent
-
-    - name: start django project
-      command: django-admin startproject {{ project_name }} chdir=/vagrant
-      register: is_started
-      ignore_errors: True
-
-    - name: project link
-      file: src=/vagrant/{{ project_name }} dest=/home/vagrant/{{ project_name }} state=link
-      when: is_started|success
-
-    - name: create app's database
-      command: mysql -u root -p{{ root_password }} -e "CREATE DATABASE {{ project_name }} DEFAULT CHARACTER SET utf8"
-      when: is_started|success
-
-    - name: create app's database users
-      command: mysql -u root -p{{ root_password }} -e "{{ item }}"
-      with_items:
-        - CREATE USER '{{ project_name }}'@'localhost' identified by '{{ project_name }}'
-        - CREATE USER '{{ project_name }}'@'127.0.0.1' identified by '{{ project_name }}'
-      when: is_started|success
-
-    - name: reload privilege tables
-      command: mysql -u root -p{{ root_password }} -e "FLUSH PRIVILEGES"
-      when: is_started|success
-
-  handlers:
-
-    - name: update timezone
-      command: dpkg-reconfigure --frontend noninteractive tzdata
-
-    - name: restart mysql
-      service: name=mysql state=restarted
+  roles:
+    - app

@@ -1,0 +1,43 @@
+---
+
+- name: check mysql is installed
+  command: mysqld -V
+  register: is_installed
+  changed_when: False
+  ignore_errors: True
+
+- name: install mysql
+  apt: name={{ item }} state=present
+  with_items:
+    - mysql-server
+    - libmysqlclient-dev
+  when: is_installed|failed
+
+- name: create mysqld.cnf
+  template: src=mysqld.cnf.j2 dest=/etc/mysql/mysql.conf.d/mysqld.cnf
+  notify: restart mysql
+  when: is_installed|failed
+
+- name: remove anonymous users
+  command: mysql -u root -e "DELETE FROM mysql.user WHERE User=''"
+  when: is_installed|failed
+
+- name: disallow root login remotely
+  command: mysql -u root -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1')"
+  when: is_installed|failed
+
+- name: remove test database and access to it
+  command: mysql -u root -e "{{ item }}"
+  with_items:
+    - DROP DATABASE test
+    - DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%'
+  ignore_errors: True
+  when: is_installed|failed
+
+- name: change the root password
+  command: mysql -u root -e "UPDATE mysql.user SET Password=PASSWORD('{{ root_password }}') WHERE User='root'"
+  when: is_installed|failed
+
+- name: reload privilege tables now
+  command: mysql -u root -e "FLUSH PRIVILEGES"
+  when: is_installed|failed
