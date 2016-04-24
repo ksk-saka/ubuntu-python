@@ -1,0 +1,33 @@
+---
+
+- name: common
+  hosts: servers
+  remote_user: vagrant
+  become: yes
+
+  roles:
+    - common
+
+- name: web
+  hosts: servers
+  remote_user: vagrant
+  become: yes
+
+  roles:
+    - web
+
+- name: db
+  hosts: servers
+  remote_user: vagrant
+  become: yes
+
+  roles:
+    - db
+
+- name: app
+  hosts: servers
+  remote_user: vagrant
+  become: yes
+
+  roles:
+    - app

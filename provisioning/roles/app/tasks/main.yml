@@ -1,0 +1,36 @@
+---
+
+- include_vars: ../../db/vars/main.yml
+
+- name: copy requirements.txt
+  copy: src=requirements.txt dest=/tmp/requirements.txt follow=yes
+
+- name: install modules from requirements.txt
+  pip: requirements=/tmp/requirements.txt executable=pip3
+
+- name: create django-admin link
+  file: src=/usr/local/python3/bin/django-admin dest=/usr/local/bin/django-admin state=link
+
+- name: start django project
+  command: django-admin startproject {{ project_name }} chdir=/vagrant
+  register: is_started
+  ignore_errors: True
+
+- name: create django project link
+  file: src=/vagrant/{{ project_name }} dest=/home/vagrant/{{ project_name }} state=link
+  when: is_started|success
+
+- name: create app's database
+  command: mysql -u root -p{{ root_password }} -e "CREATE DATABASE {{ project_name }} DEFAULT CHARACTER SET utf8"
+  when: is_started|success
+
+- name: create app's database users
+  command: mysql -u root -p{{ root_password }} -e "{{ item }}"
+  with_items:
+    - CREATE USER '{{ project_name }}'@'localhost' identified by '{{ project_name }}'
+    - CREATE USER '{{ project_name }}'@'127.0.0.1' identified by '{{ project_name }}'
+  when: is_started|success
+
+- name: reload privilege tables
+  command: mysql -u root -p{{ root_password }} -e "FLUSH PRIVILEGES"
+  when: is_started|success
