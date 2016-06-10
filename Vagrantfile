@@ -4,6 +4,7 @@
 Vagrant.configure(2) do |config|
   config.vm.box = "ubuntu/wily64"
 
+  config.vm.hostname = "ubuntu-python"
   config.vm.network "private_network", ip: "192.168.33.12"
 
   #
