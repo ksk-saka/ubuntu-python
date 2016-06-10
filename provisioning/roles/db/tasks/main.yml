@@ -13,8 +13,8 @@
     - libmysqlclient-dev
   when: is_installed|failed
 
-- name: create mysqld.cnf
-  template: src=mysqld.cnf.j2 dest=/etc/mysql/mysql.conf.d/mysqld.cnf
+- name: create mysqld_custom.cnf
+  template: src=mysqld_custom.cnf.j2 dest=/etc/mysql/mysql.conf.d/mysqld_custom.cnf
   notify: restart mysql
   when: is_installed|failed
 

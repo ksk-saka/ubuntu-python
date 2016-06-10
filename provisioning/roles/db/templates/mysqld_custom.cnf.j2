@@ -1,0 +1,11 @@
+[mysqld]
+skip-character-set-client-handshake
+character-set-server = utf8
+collation-server = utf8_general_ci
+
+general_log = 1
+general_log_file = /var/log/mysql/query.log
+
+slow_query_log = 1
+slow_query_log_file = /var/log/mysql/slow_query.log
+long_query_time = 2
