@@ -41,3 +41,7 @@
 - name: reload privilege tables now
   command: mysql -u root -e "FLUSH PRIVILEGES"
   when: is_installed|failed
+
+- name: for mysql error (mysql5.6 bug)
+  command: mysql -u root -e "DELETE FROM mysql.plugin WHERE name IN ('innodb', 'federated', 'blackhole', 'archive')"
+  when: is_installed|failed
